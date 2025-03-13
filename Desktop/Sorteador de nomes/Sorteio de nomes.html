@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sorteio de Nomes</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #121212;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 3rem;
+      background: linear-gradient(90deg, #ff5722, #e64a19);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .container {
+      max-width: 800px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .content {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      width: 100%;
+      margin-top: 20px;
+    }
+    .left, .right {
+      flex: 1;
+      margin: 10px;
+    }
+    .left {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 5px;
+      background-color: #333;
+      color: white;
+    }
+    button {
+      background-color: #ff5722;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #e64a19;
+    }
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #444;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #333;
+      color: white;
+    }
+    .winner {
+      font-size: 24px;
+      margin-top: 20px;
+      color: #ff5722;
+      font-weight: bold;
+    }
+    .confetti {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    .confetti-piece {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      opacity: 0;
+      animation: confetti 2s ease-out;
+    }
+    @keyframes confetti {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Sorteio de Nomes</h1>
+  <div class="container">
+    <input type="text" id="nameInput" placeholder="Digite os nomes separados por vírgulas">
+    <div class="content">
+      <div class="left">
+        <button id="drawButton" onclick="startTimer()">Iniciar Sorteio</button>
+        <p class="winner" id="winnerText"></p>
+      </div>
+      <div class="right">
+        <div class="table-container">
+          <table id="participantsTable">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Quantidade</th>
+              </tr>
+            </thead>
+            <tbody>
+            </tbody>
+            <tfoot>
+              <tr>
+                <th>Total</th>
+                <th id="totalQuantity">0</th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="confetti" id="confettiContainer"></div>
+
+  <script>
+    const nameInput = document.getElementById('nameInput');
+    const tableBody = document.querySelector('#participantsTable tbody');
+    const winnerText = document.getElementById('winnerText');
+    const drawButton = document.getElementById('drawButton');
+    const confettiContainer = document.getElementById('confettiContainer');
+    const totalQuantity = document.getElementById('totalQuantity');
+    let nameCounts = {};
+    let timer;
+
+    nameInput.addEventListener('input', () => {
+      updateTable();
+    });
+
+    function updateTable() {
+      const input = nameInput.value;
+      const names = input.split(',').map(name => name.trim()).filter(name => name !== "");
+      nameCounts = {};
+
+      names.forEach(name => {
+        if (nameCounts[name]) {
+          nameCounts[name]++;
+        } else {
+          nameCounts[name] = 1;
+        }
+      });
+
+      tableBody.innerHTML = '';
+      let total = 0;
+      for (const [name, count] of Object.entries(nameCounts)) {
+        const row = document.createElement('tr');
+        const nameCell = document.createElement('td');
+        nameCell.textContent = name;
+        const countCell = document.createElement('td');
+        countCell.textContent = count;
+        row.appendChild(nameCell);
+        row.appendChild(countCell);
+        tableBody.appendChild(row);
+        total += count;
+      }
+
+      totalQuantity.textContent = total;
+    }
+
+    function startTimer() {
+      if (Object.keys(nameCounts).length === 0) {
+        alert("Por favor, insira nomes antes de iniciar o sorteio!");
+        return;
+      }
+
+      drawButton.disabled = true;
+      let countdown = 5;
+      winnerText.textContent = `Sorteando em ${countdown} segundos...`;
+
+      timer = setInterval(() => {
+        countdown--;
+        if (countdown > 0) {
+          winnerText.textContent = `Sorteando em ${countdown} segundos...`;
+        } else {
+          clearInterval(timer);
+          drawWinner();
+        }
+      }, 1000);
+    }
+
+    function drawWinner() {
+      const allEntries = [];
+
+      for (const [name, count] of Object.entries(nameCounts)) {
+        for (let i = 0; i < count; i++) {
+          allEntries.push(name);
+        }
+      }
+
+      const randomIndex = Math.floor(Math.random() * allEntries.length);
+      const winner = allEntries[randomIndex];
+      winnerText.textContent = `Vencedor: ${winner}`;
+      drawButton.disabled = false;
+
+      createConfetti();
+    }
+
+    function createConfetti() {
+      confettiContainer.innerHTML = '';
+      const colors = ['#ff5722', '#e64a19', '#4caf50', '#2196f3', '#ffeb3b', '#9c27b0'];
+      for (let i = 0; i < 100; i++) {
+        const confetti = document.createElement('div');
+        confetti.classList.add('confetti-piece');
+        confetti.style.left = `${Math.random() * 100}vw`;
+        confetti.style.animationDelay = `${Math.random() * 2}s`;
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        confettiContainer.appendChild(confetti);
+      }
+    }
+  </script>
+</body>
+</html>
